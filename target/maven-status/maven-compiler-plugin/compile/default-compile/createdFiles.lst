@@ -1,0 +1,9 @@
+com\example\hotelmanagement\service\RoomService.class
+com\example\hotelmanagement\repository\RoomRepository.class
+com\example\hotelmanagement\entity\RoomType.class
+com\example\hotelmanagement\dto\RoomCreateDTO.class
+com\example\hotelmanagement\config\OpenAPIConfig.class
+com\example\hotelmanagement\HotelManagementApplication.class
+com\example\hotelmanagement\dto\RoomDTO.class
+com\example\hotelmanagement\entity\Room.class
+com\example\hotelmanagement\controller\RoomController.class
