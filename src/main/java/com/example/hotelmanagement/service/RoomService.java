@@ -1,7 +1,12 @@
 package com.example.hotelmanagement.service;
 
-import java.util.List;
+import java.math.BigDecimal;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -9,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.hotelmanagement.dto.RoomCreateDTO;
 import com.example.hotelmanagement.dto.RoomDTO;
 import com.example.hotelmanagement.entity.Room;
+import com.example.hotelmanagement.entity.RoomStatus;
+import com.example.hotelmanagement.entity.RoomType;
 import com.example.hotelmanagement.repository.RoomRepository;
 
 @Service
@@ -25,16 +32,37 @@ public class RoomService {
         room.setNumber(request.getNumber());
         room.setType(request.getType());
         room.setPrice(request.getPrice());
-        room.setFloor(1);                
-        room.setStatus("AVAILABLE");
+        room.setFloor(request.getFloor());
+        room.setStatus(request.getStatus());
         Room saved = roomRepository.save(room);
         return toDTO(saved);
     }
 
-    public List<RoomDTO> findAll() {
-        return roomRepository.findAll().stream()
-                .map(this::toDTO)
-                .toList();
+    public Page<RoomDTO> findAll(RoomType type, RoomStatus status, Integer floor,
+            BigDecimal minPrice, BigDecimal maxPrice, int page, int size) {
+
+        Specification<Room> spec = Specification.where(null);
+
+        if (type != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
+        }
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (floor != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("floor"), floor));
+        }
+        if (minPrice != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("price"), minPrice));
+        }
+        if (maxPrice != null) {
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("price"), maxPrice));
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        return roomRepository.findAll(spec, pageable)
+                .map(this::toDTO);
     }
 
     public RoomDTO findById(Long id) {
@@ -49,6 +77,8 @@ public class RoomService {
         room.setNumber(request.getNumber());
         room.setType(request.getType());
         room.setPrice(request.getPrice());
+        room.setFloor(request.getFloor());
+        room.setStatus(request.getStatus());
         Room updated = roomRepository.save(room);
         return toDTO(updated);
     }
@@ -66,6 +96,8 @@ public class RoomService {
         dto.setNumber(room.getNumber());
         dto.setType(room.getType());
         dto.setPrice(room.getPrice());
+        dto.setFloor(room.getFloor());
+        dto.setStatus(room.getStatus());
         return dto;
     }
 }

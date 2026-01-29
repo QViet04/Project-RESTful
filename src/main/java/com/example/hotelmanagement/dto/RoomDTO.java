@@ -2,6 +2,7 @@ package com.example.hotelmanagement.dto;
 
 import java.math.BigDecimal;
 
+import com.example.hotelmanagement.entity.RoomStatus;
 import com.example.hotelmanagement.entity.RoomType;
 
 public class RoomDTO {
@@ -9,6 +10,8 @@ public class RoomDTO {
     private String number;
     private RoomType type;
     private BigDecimal price;
+    private Integer floor;
+    private RoomStatus status;
 
     public Long getId() {
         return id;
@@ -40,5 +43,21 @@ public class RoomDTO {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public Integer getFloor() {
+        return floor;
+    }
+
+    public void setFloor(Integer floor) {
+        this.floor = floor;
+    }
+
+    public RoomStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(RoomStatus status) {
+        this.status = status;
     }
 }

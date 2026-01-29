@@ -29,13 +29,12 @@ public class Room {
     @Column(nullable = false)
     private BigDecimal price;
 
-   
-    @Column(name = "floor")
+    @Column(name = "floor", nullable = false)
     private Integer floor;
 
-    
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private RoomStatus status;
 
     // ==========================================
     // GETTERS AND SETTERS (Đầy đủ cho tất cả)
@@ -83,11 +82,11 @@ public class Room {
     }
 
     // --- Getter/Setter cho Status ---
-    public String getStatus() {
+    public RoomStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(RoomStatus status) {
         this.status = status;
     }
 }
