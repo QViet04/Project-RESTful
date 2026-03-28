@@ -36,6 +36,7 @@ import jakarta.validation.constraints.Positive;
 @RestController
 @Validated
 @RequestMapping("/api/v1/rooms")
+@org.springframework.web.bind.annotation.CrossOrigin(origins = "*")
 public class RoomController {
 
     private final RoomService roomService;

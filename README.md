@@ -12,22 +12,34 @@ Spring Boot 3.2.x demo for managing hotel rooms with OpenAPI (Swagger UI) and in
 - Maven 3.8.9+ (tested: `C:\Users\taquo\.maven\maven-3.8.9\apache-maven-3.8.9\bin\mvn`)
 
 ## Run locally
-PowerShell example with explicit tool paths:
+Backend (Spring Boot):
 ```powershell
+# 1) Set JDK for this shell (adjust path if different)
 $env:JAVA_HOME="C:\Program Files\Java\jdk-21"
-& "C:\Users\taquo\.maven\maven-3.8.9\apache-maven-3.8.9\bin\mvn.cmd" clean spring-boot:run
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
+
+# 2) Start with spring-boot:run (fastest for dev)
+mvn spring-boot:run
+
+# Alternative: build runnable jar then run
+mvn -DskipTests package
+& "$env:JAVA_HOME\bin\java.exe" -jar target/hotel-management-0.0.1-SNAPSHOT.jar
 ```
 
-If `JAVA_HOME` and `mvn` are already on PATH:
-```powershell
-mvn clean spring-boot:run
-```
+Frontend (static SPA):
+1) Ensure backend is running on http://localhost:8080.
+2) Open index.html in a browser (double-click or Live Server). Form POST and table GET call http://localhost:8080/api/v1/rooms.
 
 Default ports and consoles:
 - API base URL: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - OpenAPI JSON: http://localhost:8080/api-docs
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:hotel`, user `sa`, blank password)
+
+### Troubleshooting (common)
+- `Failed to fetch` in the SPA: backend not running or blocked by CORS. Start backend as above; CORS is already enabled (`@CrossOrigin` on RoomController).
+- `Unable to rename ...jar` during `mvn ... package`: stop running Java processes locking the jar (`Get-Process java | Stop-Process -Force`) then rebuild.
+- 500 error “Name for argument of type [int] not specified”: ensure Maven build uses the included `<parameters>true</parameters>` compiler setting (already in pom) and rebuild; also restart the running jar.
 
 ## Configuration
 Key settings in `src/main/resources/application.properties`:

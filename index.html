@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Room Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #edf2ff, #f7f8fb 40%, #f9fbff);
+    }
+    .card { border: none; border-radius: 18px; box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08); }
+    .status-badge { font-weight: 700; letter-spacing: 0.01em; }
+    .loading-backdrop {
+      position: fixed; inset: 0; background: rgba(255,255,255,0.6);
+      display: none; align-items: center; justify-content: center; z-index: 1050;
+    }
+    .page-title { font-weight: 800; letter-spacing: -0.02em; color: #0f172a; }
+    .muted-subtitle { color: #6c757d; }
+    .pill-header { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(59,130,246,0.12); color: #1d4ed8; border-radius: 999px; font-weight: 700; font-size: 0.9rem; }
+    .form-label { font-weight: 600; color: #0f172a; }
+    .btn-primary { background: linear-gradient(120deg, #2563eb, #4f46e5); border: none; box-shadow: 0 12px 30px rgba(37,99,235,0.35); }
+    .btn-primary:hover { background: linear-gradient(120deg, #1d4ed8, #4338ca); }
+    .table thead th { font-weight: 700; color: #0f172a; }
+  </style>
+</head>
+<body>
+  <div class="loading-backdrop" id="loading">
+    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+  </div>
+
+  <div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+      <div>
+        <div class="pill-header mb-2">Room Management</div>
+        <h2 class="mb-1 page-title">All rooms in one view</h2>
+        <small class="muted-subtitle">Create new rooms and monitor the table live.</small>
+      </div>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <div class="row g-4">
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Add new room</h5>
+            <form id="room-form" novalidate>
+              <div class="mb-3">
+                <label for="number" class="form-label">Room number</label>
+                <input type="text" class="form-control" id="number" name="number" required>
+                <div class="invalid-feedback">Enter room number.</div>
+              </div>
+              <div class="mb-3">
+                <label for="type" class="form-label">Room type</label>
+                <select class="form-select" id="type" name="type" required>
+                  <option value="" selected>Select type</option>
+                  <option value="SINGLE">SINGLE</option>
+                  <option value="DOUBLE">DOUBLE</option>
+                  <option value="SUITE">SUITE</option>
+                </select>
+                <div class="invalid-feedback">Choose a room type.</div>
+              </div>
+              <div class="mb-3">
+                <label for="price" class="form-label">Price (VND)</label>
+                <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
+                <div class="form-text">Currency: VND. No upper limit.</div>
+                <div class="invalid-feedback">Enter a valid price.</div>
+              </div>
+              <button class="btn btn-primary w-100" type="submit" id="submit-btn">Add room</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-8">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="card-title mb-0 fw-bold">Room list</h5>
+              <button class="btn btn-outline-secondary btn-sm" id="refresh-btn">Reload</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>Number</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Floor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="room-tbody">
+                  <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = "http://localhost:8080/api/v1/rooms";
+    const form = document.getElementById("room-form");
+    const tbody = document.getElementById("room-tbody");
+    const loading = document.getElementById("loading");
+    const alertBox = document.getElementById("alert-box");
+    const submitBtn = document.getElementById("submit-btn");
+    const refreshBtn = document.getElementById("refresh-btn");
+
+    const showLoading = (show) => {
+      loading.style.display = show ? "flex" : "none";
+    };
+
+    const showAlert = (message, type = "success") => {
+      alertBox.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+    };
+
+    const formatPrice = (value) => {
+      if (value === null || value === undefined) return "—";
+      return Number(value).toLocaleString("vi-VN") + " VND";
+    };
+
+    const statusBadge = (status) => {
+      const map = {
+        AVAILABLE: "success",
+        BOOKED: "danger"
+      };
+      const color = map[status] || "secondary";
+      const label = status || "UNKNOWN";
+      return `<span class="badge bg-${color} status-badge">${label}</span>`;
+    };
+
+    const renderRows = (rooms) => {
+      if (!rooms.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No rooms yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rooms.map((r) => `
+        <tr>
+          <td>${r.id ?? "—"}</td>
+          <td>${r.number ?? "—"}</td>
+          <td>${r.type ?? "—"}</td>
+          <td>${formatPrice(r.price)}</td>
+          <td>${r.floor ?? "—"}</td>
+          <td>${statusBadge(r.status)}</td>
+        </tr>
+      `).join("");
+    };
+
+    // Fetch list from backend and render
+    const fetchRooms = async () => {
+      showLoading(true);
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("Unable to fetch rooms");
+        const data = await res.json();
+        // API returns Page<RoomDTO>; prefer content if present
+        const list = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
+        renderRows(list);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center">${err.message}</td></tr>`;
+      } finally {
+        showLoading(false);
+      }
+    };
+
+    // Submit form to create a room
+    const handleSubmit = async (event) => {
+      event.preventDefault();
+      if (!form.checkValidity()) {
+        form.classList.add("was-validated");
+        return;
+      }
+      const payload = {
+        number: form.number.value.trim(),
+        type: form.type.value,
+        price: Number(form.price.value),
+        // Backend requires floor and status; use defaults for this UI
+        floor: 1,
+        status: "AVAILABLE"
+      };
+      submitBtn.disabled = true;
+      showLoading(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Create room failed");
+        showAlert("Room created.");
+        form.reset();
+        form.classList.remove("was-validated");
+        await fetchRooms();
+      } catch (err) {
+        showAlert(err.message || "Something went wrong", "danger");
+      } finally {
+        submitBtn.disabled = false;
+        showLoading(false);
+      }
+    };
+
+    form.addEventListener("submit", handleSubmit);
+    refreshBtn.addEventListener("click", fetchRooms);
+    document.addEventListener("DOMContentLoaded", fetchRooms);
+  </script>
+</body>
+</html>
